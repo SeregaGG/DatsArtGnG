@@ -1,5 +1,6 @@
 from __future__ import annotations
 import dataclasses
+import math
 import random
 import typing
 
@@ -9,6 +10,12 @@ from urllib.request import urlopen
 from io import BytesIO
 from PIL import Image
 import numpy as np
+import itertools
+import typing
+
+angle_horizontal: typing.TypeAlias = int
+angle_vertical: typing.TypeAlias = int
+power: typing.TypeAlias = int
 
 
 @dataclasses.dataclass
@@ -49,6 +56,9 @@ class Painter:
     def __init__(self, base_url: str, token: str):
         self._token = token
         self._base_url = base_url
+        self._distance_to_art = 300
+        self._pi = 3.1415926535898
+        self._g = 9.80665
 
     def get_levels(self) -> dict:
         url = f"{self._base_url}art/stage/next"
@@ -78,6 +88,26 @@ class Painter:
         res = response.json()
         print(res)
 
+    def shoot_params(self, weight: int, x: int, y: int, m: int) -> (angle_horizontal, angle_vertical, power):
+        cata_distance_to_point = ((weight // 2 - x), self._distance_to_art + y)
+        tan = cata_distance_to_point[0] / cata_distance_to_point[1]
+        current_angle_horizontal = (tan * 180 / self._pi)
+
+        current_path = math.sqrt(cata_distance_to_point[0] ** 2 + cata_distance_to_point[1] ** 2)
+        v0 = math.sqrt(current_path * self._g)  # sin (2*45) = 1
+        current_power = m * v0
+
+        return current_angle_horizontal, 45, current_power
+
+    # def get_distances(self, pixels_art: list[list[Pixel]]) -> dict[int, dict[int, float]]:
+    #     uniq_colors = set(list(itertools.chain(*pixels_art)))
+    #     result: dict[int, dict[int, float]] = dict()
+    #     url = f"{self._base_url}art/stage/next"
+    #     headers = {"Authorization": f"Bearer {self._token}"}
+    #     payload = {}
+    #     response = requests.post(url, headers=headers, data=payload)
+    #     storage_colors: list[int] = response.json().get('response')
+
     @staticmethod
     def pixel_array_from_url(url: str) -> list[list[Pixel]]:
         response = urlopen(url)
@@ -106,6 +136,7 @@ if __name__ == "__main__":
         base_url=base_url,
         token="643b227165f03643b227165f07",
     )
+    painter.shoot_params(40, 10, 10, 2)
     painter.collect_colors()
     test_url = "http://s.datsart.dats.team/game/image/shared/1.png"
     # test = painter.pixel_array_from_url(test_url)[200][200]
