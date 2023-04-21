@@ -59,6 +59,19 @@ class Painter:
         return [[Pixel(p[0], p[1], p[2]) for p in row] for row in image_array]
 
 
+def get_uniq_pixels_dict(art: list[list[Pixel]]) -> dict[int, int]:
+    pixels_art: dict[int, int] = dict()
+
+    for pixels in art:
+        for pixel in pixels:
+            if not pixels_art.get(pixel.to_24_bit()) is None:
+                pixels_art[pixel.to_24_bit()] += 1
+            else:
+                pixels_art[pixel.to_24_bit()] = 1
+
+    return pixels_art
+
+
 if __name__ == "__main__":
     base_url = "http://api.datsart.dats.team/"
     painter = Painter(
@@ -70,3 +83,6 @@ if __name__ == "__main__":
     print(test)
     print(test.to_24_bit())
     print(test.from_24_bit(test.to_24_bit()))
+    test2 = get_uniq_pixels_dict(painter.pixel_array_from_url(test_url))
+    print(test2)
+    print(len(test2))
