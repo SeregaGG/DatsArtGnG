@@ -1,5 +1,9 @@
 from __future__ import annotations
 import dataclasses
+import random
+import typing
+
+import numpy
 import requests
 from urllib.request import urlopen
 from io import BytesIO
@@ -27,6 +31,9 @@ class Pixel:
     def __repr__(self) -> str:
         return f"{self.amount} ({self.r}, {self.g}, {self.b})"
 
+    def __sub__(self, other: Pixel) -> float:
+        return numpy.sqrt((self.r - other.r) ** 2 + (self.g - other.g) ** 2 + (self.b - other.b) ** 2)
+
     @classmethod
     def from_24_bit(cls, value: int) -> Pixel:
         red = (value >> 16) & 0xFF
@@ -49,6 +56,27 @@ class Painter:
         payload = {}
         response = requests.post(url, headers=headers, data=payload)
         return response.json()
+
+    def collect_colors(self) -> typing.NoReturn:
+        while True:
+            url = f"{self._base_url}art/factory/generate"
+            headers = {"Authorization": f"Bearer {self._token}"}
+            payload = {}
+            response = requests.post(url, headers=headers, data=payload)
+            res = response.json()
+            tick = res['info']['tick']
+            url = f"{self._base_url}art/factory/pick"
+            payload = {"num": random.randint(1, 3), "tick": tick}
+            response = requests.post(url, headers=headers, data=payload)
+            print("Working")
+
+    def current_colors(self) -> dict:
+        url = f"{self._base_url}art/colors/info"
+        headers = {"Authorization": f"Bearer {self._token}"}
+        payload = {}
+        response = requests.post(url, headers=headers, data=payload)
+        res = response.json()
+        print(res)
 
     @staticmethod
     def pixel_array_from_url(url: str) -> list[list[Pixel]]:
@@ -78,11 +106,19 @@ if __name__ == "__main__":
         base_url=base_url,
         token="643b227165f03643b227165f07",
     )
+    painter.collect_colors()
     test_url = "http://s.datsart.dats.team/game/image/shared/1.png"
-    test = painter.pixel_array_from_url(test_url)[200][200]
-    print(test)
-    print(test.to_24_bit())
-    print(test.from_24_bit(test.to_24_bit()))
-    test2 = get_uniq_pixels_dict(painter.pixel_array_from_url(test_url))
-    print(test2)
-    print(len(test2))
+    # test = painter.pixel_array_from_url(test_url)[200][200]
+    # print(test)
+    # print(test.to_24_bit())
+    # print(test.from_24_bit(test.to_24_bit()))
+    # test2 = get_uniq_pixels_dict(painter.pixel_array_from_url(test_url))
+    # print(test2)
+    # print(len(test2))
+    # print(Pixel.from_24_bit(16777215))
+    p1 = Pixel.from_24_bit(16777215)
+    p2 = Pixel.from_24_bit(16_522_178)
+    print(f"{ p1 = } {p2 = }")
+    print(p1 - p2)
+    # catalpulata
+    # catalpulata.launch(Pixel(123, 123, 123), x, y)
