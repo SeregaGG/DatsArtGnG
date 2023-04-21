@@ -153,11 +153,10 @@ class Painter:
     def _fire_single_pixel(self, image: list[list[Pixel]], pixel: Pixel, x: int, y: int) -> None:
         color = self._get_best_color(pixel)
         self.current_colors[color] -= 1
-        angle_horizon, angle_vertical, force = self._balistic_computer(
-            image_width=len(image[0]),
+        angle_horizon, angle_vertical, force = self.shoot_params(
+            weight=len(image[0]),
             x=x,
             y=y,
-            mass=1,
         )
         colors = {color: 1}
         self._fire(
@@ -167,13 +166,22 @@ class Painter:
             colors=colors,
         )
 
-    def cheap_and_angry(self, image: list[list[Pixel]], ) -> None:
+    def cheap_and_angry(self, url: str, ) -> None:
+        image = self.pixel_array_from_url(url)
         self.current_colors = self._get_current_colors()
         for x, row in enumerate(image):
             for y, pixel in enumerate(row):
                 if pixel.is_white():
                     continue
-                self._fire_single_pixel(pixel, x, y)
+                self._fire_single_pixel(pixel=pixel, x=x, y=y, image=image)
+
+    def test_shot(self, url: str) -> None:
+        image = self.pixel_array_from_url(url)
+        pixel = image[125][100]
+        if pixel.is_white():
+            raise ValueError()
+        self._fire_single_pixel(pixel=pixel, x=125, y=100, image=image)
+
 
 
 def get_uniq_pixels_dict(art: list[list[Pixel]]) -> dict[int, int]:
@@ -188,26 +196,11 @@ def get_uniq_pixels_dict(art: list[list[Pixel]]) -> dict[int, int]:
 
     return pixels_art
 
-
+import pprint
 if __name__ == "__main__":
     base_url = "http://api.datsart.dats.team/"
     painter = Painter(
         base_url=base_url,
         token="643b227165f03643b227165f07",
     )
-    painter.collect_colors()
-    test_url = "http://s.datsart.dats.team/game/image/shared/1.png"
-    # test = painter.pixel_array_from_url(test_url)[200][200]
-    # print(test)
-    # print(test.to_24_bit())
-    # print(test.from_24_bit(test.to_24_bit()))
-    # test2 = get_uniq_pixels_dict(painter.pixel_array_from_url(test_url))
-    # print(test2)
-    # print(len(test2))
-    # print(Pixel.from_24_bit(16777215))
-    p1 = Pixel.from_24_bit(16777215)
-    p2 = Pixel.from_24_bit(16_522_178)
-    print(f"{ p1 = } {p2 = }")
-    print(p1 - p2)
-    # catalpulata
-    # catalpulata.launch(Pixel(123, 123, 123), x, y)
+    picture_url = "http://s.datsart.dats.team/game/image/shared/2.png"
