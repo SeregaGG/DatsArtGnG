@@ -27,8 +27,15 @@ class Pixel:
     def __repr__(self) -> str:
         return f"{self.amount} ({self.r}, {self.g}, {self.b})"
 
+    @classmethod
+    def from_24_bit(cls, value: int) -> Pixel:
+        red = (value >> 16) & 0xFF
+        green = (value >> 8) & 0xFF
+        blue = value & 0xFF
+        return cls(r=red, g=green, b=blue)
+
     def to_24_bit(self) -> int:
-        return self.r >> 16 + self.g >> 8 + self.b
+        return (self.r << 16) | (self.g << 8) | self.b
 
 
 class Painter:
@@ -59,6 +66,9 @@ if __name__ == "__main__":
         token="643b227165f03643b227165f07",
     )
     test_url = "http://s.datsart.dats.team/game/image/shared/1.png"
-    print(painter.pixel_array_from_url(test_url)[200][200])
+    test = painter.pixel_array_from_url(test_url)[200][200]
+    print(test)
+    print(test.to_24_bit())
+    print(test.from_24_bit(test.to_24_bit()))
 
 
