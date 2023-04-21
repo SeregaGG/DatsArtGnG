@@ -1,6 +1,10 @@
 from __future__ import annotations
 import dataclasses
 import requests
+from urllib.request import urlopen
+from io import BytesIO
+from PIL import Image
+import numpy as np
 
 
 @dataclasses.dataclass
@@ -23,6 +27,9 @@ class Pixel:
     def __repr__(self) -> str:
         return f"{self.amount} ({self.r}, {self.g}, {self.b})"
 
+    def to_24_bit(self) -> int:
+        return self.r >> 16 + self.g >> 8 + self.b
+
 
 class Painter:
     def __init__(self, base_url: str, token: str):
@@ -36,16 +43,22 @@ class Painter:
         response = requests.post(url, headers=headers, data=payload)
         return response.json()
 
+    @staticmethod
+    def pixel_array_from_url(url: str) -> list[list[Pixel]]:
+        response = urlopen(url)
+        image_data = response.read()
+        image = Image.open(BytesIO(image_data))
+        image_array = np.array(image)
+        return [[Pixel(p[0], p[1], p[2]) for p in row] for row in image_array]
+
 
 if __name__ == "__main__":
-    # base_url = "http://api.datsart.dats.team/"
-    # painter = Painter(
-    #     base_url=base_url,
-    #     token="643b227165f03643b227165f07",
-    # )
-    # levels = painter.get_levels()
-    # pprint.pprint(levels)
-    p1 = Pixel(123, 23, 55)
-    p2 = Pixel(44, 1, 100)
-    p3 = p1 * 2 + p2 * 3
-    print(p3)
+    base_url = "http://api.datsart.dats.team/"
+    painter = Painter(
+        base_url=base_url,
+        token="643b227165f03643b227165f07",
+    )
+    test_url = "http://s.datsart.dats.team/game/image/shared/1.png"
+    print(painter.pixel_array_from_url(test_url)[200][200])
+
+
