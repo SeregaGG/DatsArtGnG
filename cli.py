@@ -11,6 +11,9 @@ from PIL import Image
 import numpy as np
 
 
+Color: typing.TypeAlias = int
+
+
 @dataclasses.dataclass
 class Pixel:
     r: int
@@ -44,11 +47,17 @@ class Pixel:
     def to_24_bit(self) -> int:
         return (self.r << 16) | (self.g << 8) | self.b
 
+    def is_white(self) -> bool:
+        if self.r == 255 and self.b == 255 and self.g == 255:
+            return True
+        return False
+
 
 class Painter:
     def __init__(self, base_url: str, token: str):
         self._token = token
         self._base_url = base_url
+        self.current_colors = {}
 
     def get_levels(self) -> dict:
         url = f"{self._base_url}art/stage/next"
@@ -70,13 +79,13 @@ class Painter:
             response = requests.post(url, headers=headers, data=payload)
             print("Working")
 
-    def current_colors(self) -> dict:
-        url = f"{self._base_url}art/colors/info"
+    def _get_current_colors(self) -> dict[Color, Pixel]:
+        url = f"{self._base_url}art/colors/list"
         headers = {"Authorization": f"Bearer {self._token}"}
         payload = {}
         response = requests.post(url, headers=headers, data=payload)
         res = response.json()
-        print(res)
+        return {int(color): Pixel.from_24_bit(int(color)) * amount for color, amount in res['response'].items()}
 
     @staticmethod
     def pixel_array_from_url(url: str) -> list[list[Pixel]]:
@@ -85,6 +94,56 @@ class Painter:
         image = Image.open(BytesIO(image_data))
         image_array = np.array(image)
         return [[Pixel(p[0], p[1], p[2]) for p in row] for row in image_array]
+
+    def _get_best_color(self, pixel: Pixel) -> Color:
+        min_distance = float("inf")
+        color = None
+        for c, p in self.current_colors.items():
+            distance = pixel - p
+            if distance < min_distance:
+                min_distance = distance
+                color = c
+        return color
+
+    def _fire(self, angle_horizon: float, angle_vertical: float, force: float, colors: dict[Color, int]):
+        url = f"{self._base_url}art/ballista/shoot"
+        headers = {"Authorization": f"Bearer {self._token}"}
+        payload = {
+            "angleHorizontal": angle_horizon,
+            "angleVertical": angle_vertical,
+            "power": force,
+        }
+        for c, amount in colors.items():
+            payload[f'color[{c}]']: amount
+        response = requests.post(url, headers=headers, data=payload)
+        res = response.json()
+        if res['status'] != 200:
+            raise ValueError()
+
+    def _fire_single_pixel(self, image: list[list[Pixel]], pixel: Pixel, x: int, y: int) -> None:
+        color = self._get_best_color(pixel)
+        self.current_colors[color] -= 1
+        angle_horizon, angle_vertical, force = self._balistic_computer(
+            image_width=len(image[0]),
+            x=x,
+            y=y,
+            mass=1,
+        )
+        colors = {color: 1}
+        self._fire(
+            angle_horizon=angle_horizon,
+            angle_vertical=angle_vertical,
+            force=force,
+            colors=colors,
+        )
+
+    def cheap_and_angry(self, image: list[list[Pixel]], ) -> None:
+        self.current_colors = self._get_current_colors()
+        for x, row in enumerate(image):
+            for y, pixel in enumerate(row):
+                if pixel.is_white():
+                    continue
+                self._fire_single_pixel(pixel, x, y)
 
 
 def get_uniq_pixels_dict(art: list[list[Pixel]]) -> dict[int, int]:
@@ -116,9 +175,5 @@ if __name__ == "__main__":
     # print(test2)
     # print(len(test2))
     # print(Pixel.from_24_bit(16777215))
-    p1 = Pixel.from_24_bit(16777215)
-    p2 = Pixel.from_24_bit(16_522_178)
-    print(f"{ p1 = } {p2 = }")
-    print(p1 - p2)
-    # catalpulata
-    # catalpulata.launch(Pixel(123, 123, 123), x, y)
+    # for c in painter.current_colors().values():
+    #     print(c)
