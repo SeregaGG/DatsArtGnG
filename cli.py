@@ -132,7 +132,7 @@ class Painter:
         payload = {
             "angleHorizontal": angle_horizon,
             "angleVertical": angle_vertical,
-            "power": force,
+            "power": force * 10000,
         }
         for c, amount in colors.items():
             payload[f'colors[{c}]'] = amount
@@ -175,6 +175,14 @@ class Painter:
             raise ValueError()
         self._fire_single_pixel(pixel=pixel, x=125, y=100, image=image)
 
+    def get_current_url(self) -> str:
+        url = f"{self._base_url}art/stage/info"
+        headers = {"Authorization": f"Bearer {self._token}"}
+        payload = {}
+        response = requests.post(url, headers=headers, data=payload)
+        res = response.json()
+        return res['response']['canvas']['url']
+
 
 def get_uniq_pixels_dict(art: list[list[Pixel]]) -> dict[int, int]:
     pixels_art: dict[int, int] = dict()
@@ -197,4 +205,6 @@ if __name__ == "__main__":
         token=os.getenv("TOKEN"),
     )
     picture_url = "http://s.datsart.dats.team/game/image/shared/2.png"
-    painter.test_shot(picture_url)
+    # painter.test_shot(picture_url)
+    # print(painter.get_current_url())
+    painter.collect_colors()
