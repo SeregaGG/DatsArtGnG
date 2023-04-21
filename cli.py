@@ -103,10 +103,11 @@ class Painter:
         current_angle_horizontal = (tan * 180 / self._pi)
 
         current_path = math.sqrt(cata_distance_to_point[0] ** 2 + cata_distance_to_point[1] ** 2)
-        v0 = math.sqrt(current_path * self._g)  # sin (2*45) = 1
-        current_power = m * v0 * 0.001
+        v0pow2 = (1000 * 2) / (m * 0.001)
+        sin2a = (self._g * current_path)/v0pow2
+        current_angle_vertical = (sin2a * self._pi / 180) * 2
 
-        return current_angle_horizontal, 45, current_power
+        return current_angle_horizontal, current_angle_vertical, 1000
 
     @staticmethod
     def pixel_array_from_url(url: str) -> list[list[Pixel]]:
