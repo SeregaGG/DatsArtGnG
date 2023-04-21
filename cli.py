@@ -104,7 +104,7 @@ class Painter:
 
         current_path = math.sqrt(cata_distance_to_point[0] ** 2 + cata_distance_to_point[1] ** 2)
         v0 = math.sqrt(current_path * self._g)  # sin (2*45) = 1
-        current_power = m * v0
+        current_power = m * v0 * 0.001
 
         return current_angle_horizontal, 45, current_power
 
