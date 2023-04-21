@@ -70,5 +70,3 @@ if __name__ == "__main__":
     print(test)
     print(test.to_24_bit())
     print(test.from_24_bit(test.to_24_bit()))
-
-
