@@ -2,7 +2,6 @@ from __future__ import annotations
 import dataclasses
 import math
 import random
-import typing
 
 import numpy
 import requests
@@ -10,7 +9,6 @@ from urllib.request import urlopen
 from io import BytesIO
 from PIL import Image
 import numpy as np
-import itertools
 import typing
 from dotenv import load_dotenv
 import os
@@ -110,15 +108,6 @@ class Painter:
 
         return current_angle_horizontal, 45, current_power
 
-    # def get_distances(self, pixels_art: list[list[Pixel]]) -> dict[int, dict[int, float]]:
-    #     uniq_colors = set(list(itertools.chain(*pixels_art)))
-    #     result: dict[int, dict[int, float]] = dict()
-    #     url = f"{self._base_url}art/stage/next"
-    #     headers = {"Authorization": f"Bearer {self._token}"}
-    #     payload = {}
-    #     response = requests.post(url, headers=headers, data=payload)
-    #     storage_colors: list[int] = response.json().get('response')
-
     @staticmethod
     def pixel_array_from_url(url: str) -> list[list[Pixel]]:
         response = urlopen(url)
@@ -146,8 +135,7 @@ class Painter:
             "power": force,
         }
         for c, amount in colors.items():
-            payload[f'color[{c}]']: amount
-            payload[f'color[{198431}]']: 1
+            payload[f'colors[{c}]'] = amount
         response = requests.post(url, headers=headers, data=payload)
         res = response.json()
         if res['status'] != 200:
