@@ -1,5 +1,6 @@
 from __future__ import annotations
 import dataclasses
+import math
 import random
 import typing
 
@@ -9,6 +10,12 @@ from urllib.request import urlopen
 from io import BytesIO
 from PIL import Image
 import numpy as np
+import itertools
+import typing
+
+angle_horizontal: typing.TypeAlias = int
+angle_vertical: typing.TypeAlias = int
+power: typing.TypeAlias = int
 
 
 Color: typing.TypeAlias = int
@@ -58,6 +65,9 @@ class Painter:
         self._token = token
         self._base_url = base_url
         self.current_colors = {}
+        self._distance_to_art = 300
+        self._pi = 3.1415926535898
+        self._g = 9.80665
 
     def get_levels(self) -> dict:
         url = f"{self._base_url}art/stage/next"
@@ -86,6 +96,26 @@ class Painter:
         response = requests.post(url, headers=headers, data=payload)
         res = response.json()
         return {int(color): Pixel.from_24_bit(int(color)) * amount for color, amount in res['response'].items()}
+
+    def shoot_params(self, weight: int, x: int, y: int, m: int) -> (angle_horizontal, angle_vertical, power):
+        cata_distance_to_point = ((weight // 2 - x), self._distance_to_art + y)
+        tan = cata_distance_to_point[0] / cata_distance_to_point[1]
+        current_angle_horizontal = (tan * 180 / self._pi)
+
+        current_path = math.sqrt(cata_distance_to_point[0] ** 2 + cata_distance_to_point[1] ** 2)
+        v0 = math.sqrt(current_path * self._g)  # sin (2*45) = 1
+        current_power = m * v0
+
+        return current_angle_horizontal, 45, current_power
+
+    # def get_distances(self, pixels_art: list[list[Pixel]]) -> dict[int, dict[int, float]]:
+    #     uniq_colors = set(list(itertools.chain(*pixels_art)))
+    #     result: dict[int, dict[int, float]] = dict()
+    #     url = f"{self._base_url}art/stage/next"
+    #     headers = {"Authorization": f"Bearer {self._token}"}
+    #     payload = {}
+    #     response = requests.post(url, headers=headers, data=payload)
+    #     storage_colors: list[int] = response.json().get('response')
 
     @staticmethod
     def pixel_array_from_url(url: str) -> list[list[Pixel]]:
@@ -175,5 +205,9 @@ if __name__ == "__main__":
     # print(test2)
     # print(len(test2))
     # print(Pixel.from_24_bit(16777215))
-    # for c in painter.current_colors().values():
-    #     print(c)
+    p1 = Pixel.from_24_bit(16777215)
+    p2 = Pixel.from_24_bit(16_522_178)
+    print(f"{ p1 = } {p2 = }")
+    print(p1 - p2)
+    # catalpulata
+    # catalpulata.launch(Pixel(123, 123, 123), x, y)
