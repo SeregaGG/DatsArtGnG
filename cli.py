@@ -12,10 +12,12 @@ from PIL import Image
 import numpy as np
 import itertools
 import typing
+from dotenv import load_dotenv
+import os
 
-angle_horizontal: typing.TypeAlias = int
-angle_vertical: typing.TypeAlias = int
-power: typing.TypeAlias = int
+AngleHorizontal: typing.TypeAlias = int
+AngleVertical: typing.TypeAlias = int
+Power: typing.TypeAlias = int
 
 
 Color: typing.TypeAlias = int
@@ -97,7 +99,7 @@ class Painter:
         res = response.json()
         return {int(color): Pixel.from_24_bit(int(color)) * amount for color, amount in res['response'].items()}
 
-    def shoot_params(self, weight: int, x: int, y: int, m: int) -> (angle_horizontal, angle_vertical, power):
+    def shoot_params(self, weight: int, x: int, y: int, m: int) -> (AngleHorizontal, AngleVertical, Power):
         cata_distance_to_point = ((weight // 2 - x), self._distance_to_art + y)
         tan = cata_distance_to_point[0] / cata_distance_to_point[1]
         current_angle_horizontal = (tan * 180 / self._pi)
@@ -145,6 +147,7 @@ class Painter:
         }
         for c, amount in colors.items():
             payload[f'color[{c}]']: amount
+            payload[f'color[{198431}]']: 1
         response = requests.post(url, headers=headers, data=payload)
         res = response.json()
         if res['status'] != 200:
@@ -152,11 +155,12 @@ class Painter:
 
     def _fire_single_pixel(self, image: list[list[Pixel]], pixel: Pixel, x: int, y: int) -> None:
         color = self._get_best_color(pixel)
-        self.current_colors[color] -= 1
+        self.current_colors[color].amount -= 1
         angle_horizon, angle_vertical, force = self.shoot_params(
             weight=len(image[0]),
             x=x,
             y=y,
+            m=1,
         )
         colors = {color: 1}
         self._fire(
@@ -177,11 +181,11 @@ class Painter:
 
     def test_shot(self, url: str) -> None:
         image = self.pixel_array_from_url(url)
+        self.current_colors = self._get_current_colors()
         pixel = image[125][100]
         if pixel.is_white():
             raise ValueError()
         self._fire_single_pixel(pixel=pixel, x=125, y=100, image=image)
-
 
 
 def get_uniq_pixels_dict(art: list[list[Pixel]]) -> dict[int, int]:
@@ -196,11 +200,13 @@ def get_uniq_pixels_dict(art: list[list[Pixel]]) -> dict[int, int]:
 
     return pixels_art
 
-import pprint
+
 if __name__ == "__main__":
+    load_dotenv()
     base_url = "http://api.datsart.dats.team/"
     painter = Painter(
         base_url=base_url,
-        token="643b227165f03643b227165f07",
+        token=os.getenv("TOKEN"),
     )
     picture_url = "http://s.datsart.dats.team/game/image/shared/2.png"
+    painter.test_shot(picture_url)
