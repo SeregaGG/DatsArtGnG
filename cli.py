@@ -18,7 +18,6 @@ AngleHorizontal: typing.TypeAlias = int
 AngleVertical: typing.TypeAlias = int
 Power: typing.TypeAlias = int
 
-
 Color: typing.TypeAlias = int
 
 
@@ -62,6 +61,8 @@ class Pixel:
 
 
 class Painter:
+    STATUS_SUCCESS = 20
+
     def __init__(self, base_url: str, token: str):
         self._token = token
         self._base_url = base_url
@@ -98,22 +99,17 @@ class Painter:
         res = response.json()
         return {int(color): Pixel.from_24_bit(int(color)) * amount for color, amount in res['response'].items()}
 
-    def shoot_params(self, width: int, x: int, y: int, m: int) -> (AngleHorizontal, AngleVertical, Power):
-        mass_reduce_coef = 1
-        fixed_angle = 85
-        width = 300
-        your_position = 150
-        x = 100
-
-        cata_distance_to_point = ((width // 2 - x), self._distance_to_art + y)
-        tan = cata_distance_to_point[0] / cata_distance_to_point[1]
-        current_angle_horizontal = (tan * 180 / self._pi)
-
-        current_path = math.sqrt(cata_distance_to_point[0] ** 2 + cata_distance_to_point[1] ** 2)
-        v2 = (current_path * self._g) / math.sin(fixed_angle * 2 * self._pi / 180)
-        power = (m * mass_reduce_coef * v2) / (2 * self._g)
-
-        return current_angle_horizontal, fixed_angle, power
+    def wait_for_queue(self, id: int) -> bool:
+        url = f"{self._base_url}art/state/queue"
+        headers = {"Authorization": f"Bearer {self._token}"}
+        payload = {"id": id}
+        response = requests.post(url, headers=headers, data=payload)
+        res = response.json()
+        queue = res.get("response")
+        for command_data in queue:
+            if command_data.get("id") == id:
+                return command_data.get("status") == self.STATUS_SUCCESS
+        return False
 
     def seva_shoot_params(self, width: int, x: int, y: int, mass: int) -> (AngleHorizontal, AngleVertical, Power):
         mass_reduce_coef = 0.001
