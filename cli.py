@@ -98,17 +98,15 @@ class Painter:
         return {int(color): Pixel.from_24_bit(int(color)) * amount for color, amount in res['response'].items()}
 
     def shoot_params(self, weight: int, x: int, y: int, m: int) -> (AngleHorizontal, AngleVertical, Power):
-        serega_coef = 100
         cata_distance_to_point = ((weight // 2 - x), self._distance_to_art + y)
         tan = cata_distance_to_point[0] / cata_distance_to_point[1]
         current_angle_horizontal = (tan * 180 / self._pi)
 
         current_path = math.sqrt(cata_distance_to_point[0] ** 2 + cata_distance_to_point[1] ** 2)
-        v0pow2 = (serega_coef * 2) / (m * 0.001)
-        sin2a = (self._g * current_path)/v0pow2
-        current_angle_vertical = (sin2a * self._pi / 180) * 2
+        v2 = (current_path * self._g) / math.sin(85 * 2 * self._pi / 180)
+        power = (m * 0.001 * v2) / (2 * self._g)
 
-        return current_angle_horizontal, current_angle_vertical, serega_coef
+        return current_angle_horizontal, 85, power
 
     @staticmethod
     def pixel_array_from_url(url: str) -> list[list[Pixel]]:
