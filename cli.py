@@ -99,15 +99,15 @@ class Painter:
         res = response.json()
         return {int(color): Pixel.from_24_bit(int(color)) * amount for color, amount in res['response'].items()}
 
-    def wait_for_queue(self, id: int) -> bool:
+    def wait_for_queue(self, current_id: int) -> bool:
         url = f"{self._base_url}art/state/queue"
         headers = {"Authorization": f"Bearer {self._token}"}
-        payload = {"id": id}
+        payload = {"id": current_id}
         response = requests.post(url, headers=headers, data=payload)
         res = response.json()
         queue = res.get("response")
         for command_data in queue:
-            if command_data.get("id") == id:
+            if command_data.get("id") == current_id:
                 return command_data.get("status") == self.STATUS_SUCCESS
         return False
 
