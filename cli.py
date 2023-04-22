@@ -2,6 +2,7 @@ from __future__ import annotations
 import dataclasses
 import math
 import random
+import time
 
 import numpy
 import requests
@@ -97,16 +98,35 @@ class Painter:
         res = response.json()
         return {int(color): Pixel.from_24_bit(int(color)) * amount for color, amount in res['response'].items()}
 
-    def shoot_params(self, weight: int, x: int, y: int, m: int) -> (AngleHorizontal, AngleVertical, Power):
-        cata_distance_to_point = ((weight // 2 - x), self._distance_to_art + y)
+    def shoot_params(self, width: int, x: int, y: int, m: int) -> (AngleHorizontal, AngleVertical, Power):
+        mass_reduce_coef = 1
+        fixed_angle = 85
+        width = 300
+        your_position = 150
+        x = 100
+
+        cata_distance_to_point = ((width // 2 - x), self._distance_to_art + y)
         tan = cata_distance_to_point[0] / cata_distance_to_point[1]
         current_angle_horizontal = (tan * 180 / self._pi)
 
         current_path = math.sqrt(cata_distance_to_point[0] ** 2 + cata_distance_to_point[1] ** 2)
-        v2 = (current_path * self._g) / math.sin(85 * 2 * self._pi / 180)
-        power = (m * 0.001 * v2) / (2 * self._g)
+        v2 = (current_path * self._g) / math.sin(fixed_angle * 2 * self._pi / 180)
+        power = (m * mass_reduce_coef * v2) / (2 * self._g)
 
-        return current_angle_horizontal, 85, power
+        return current_angle_horizontal, fixed_angle, power
+
+    def seva_shoot_params(self, width: int, x: int, y: int, mass: int) -> (AngleHorizontal, AngleVertical, Power):
+        mass_reduce_coef = 0.001
+        fixed_angle = 45
+
+        a, b = (width // 2 - x), self._distance_to_art + y
+        theta = math.atan(a / b)
+        angle = math.degrees(theta)
+        current_angle_horizontal = angle
+
+        distance = math.sqrt(a**2 + b**2)
+        power = (self._g * distance * mass * mass_reduce_coef) / 2
+        return current_angle_horizontal, fixed_angle, power
 
     @staticmethod
     def pixel_array_from_url(url: str) -> list[list[Pixel]]:
@@ -136,19 +156,22 @@ class Painter:
         }
         for c, amount in colors.items():
             payload[f'colors[{c}]'] = amount
-        response = requests.post(url, headers=headers, data=payload)
-        res = response.json()
-        if res['status'] != 200:
-            raise ValueError()
+        while True:
+            response = requests.post(url, headers=headers, data=payload)
+            res = response.json()
+            if res['status'] != 200:
+                time.sleep(0.1)
+            else:
+                break
 
     def _fire_single_pixel(self, image: list[list[Pixel]], pixel: Pixel, x: int, y: int) -> None:
         color = self._get_best_color(pixel)
         self.current_colors[color].amount -= 1
-        angle_horizon, angle_vertical, force = self.shoot_params(
-            weight=len(image[0]),
+        angle_horizon, angle_vertical, force = self.seva_shoot_params(
+            width=len(image[0]),
             x=x,
             y=y,
-            m=1,
+            mass=10,
         )
         colors = {color: 1}
         self._fire(
@@ -166,6 +189,7 @@ class Painter:
                 if pixel.is_white():
                     continue
                 self._fire_single_pixel(pixel=pixel, x=x, y=y, image=image)
+                print("Colored!")
 
     def test_shot(self, url: str) -> None:
         image = self.pixel_array_from_url(url)
@@ -173,7 +197,7 @@ class Painter:
         pixel = image[125][100]
         if pixel.is_white():
             raise ValueError()
-        self._fire_single_pixel(pixel=pixel, x=125, y=100, image=image)
+        self._fire_single_pixel(pixel=pixel, x=10, y=10, image=image)
 
     def get_current_url(self) -> str:
         url = f"{self._base_url}art/stage/info"
@@ -205,6 +229,7 @@ if __name__ == "__main__":
         token=os.getenv("TOKEN"),
     )
     picture_url = "http://s.datsart.dats.team/game/image/shared/2.png"
-    # painter.test_shot(picture_url)
-    # print(painter.get_current_url())
-    painter.collect_colors()
+    painter.test_shot(picture_url)
+    # painter.cheap_and_angry(picture_url)
+    print(painter.get_current_url())
+    # painter.collect_colors()
